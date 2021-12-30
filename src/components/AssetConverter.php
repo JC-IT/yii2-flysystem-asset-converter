@@ -100,7 +100,7 @@ class AssetConverter extends Converter
         }
 
         if (YII_DEBUG) {
-            Yii::info("Converted $asset into $resultFile ", __CLASS__);
+            \Yii::info("Converted $asset into $resultFile ", __CLASS__);
         }
 
         $this->afterConversion($mountManager, $basePath, $resultFile, $tmpBasePath);

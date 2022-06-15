@@ -11,9 +11,9 @@
         }
     ],
     "require": {
-        "php": ">=8.0",
+        "php": ">=8.1",
 
-        "creocoder/yii2-flysystem": "^1.1.0",
+        "league/flysystem": "^3.0.21",
         "nizsheanez/yii2-asset-converter": "^2.0.1",
         "yiisoft/yii2": "~2.0.42"
     },

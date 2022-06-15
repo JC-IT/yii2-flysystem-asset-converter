@@ -3,8 +3,8 @@ declare(strict_types=1);
 
 namespace JCIT\components;
 
-use creocoder\flysystem\Filesystem;
-use creocoder\flysystem\LocalFilesystem;
+use League\Flysystem\Filesystem;
+use League\Flysystem\Local\LocalFilesystemAdapter;
 use League\Flysystem\MountManager;
 use nizsheanez\assetConverter\Converter;
 use yii\caching\Cache;
@@ -16,15 +16,12 @@ class AssetConverter extends Converter
 {
     public Cache|string|array $cache = 'cache';
     public string $cacheKey = 'assets.';
-    public Filesystem|string|array $destinationFilesystem = [
-        'class' => LocalFilesystem::class,
-        'path' => '@webroot/assets',
-    ];
+    public Filesystem|string|array $destinationFilesystem;
     public string $tmpLocalDir = '@app/runtime/assetConversion';
 
     private function afterConversion(MountManager $mountManager, string $basePath, string $file, string $tmpBasePath): void
     {
-        if (!$mountManager->has('target://' . $basePath . '/'. $file)) {
+        if (!$mountManager->fileExists('target://' . $basePath . '/'. $file)) {
             $mountManager->copy('tmp://' . $basePath . '/'. $file, 'target://' . $basePath . '/'. $file);
         }
 
@@ -76,8 +73,8 @@ class AssetConverter extends Converter
         }
 
         $mountManager = new MountManager([
-            'target' => $this->destinationFilesystem->getFilesystem(),
-            'tmp' => (new LocalFilesystem(['path' => $this->tmpLocalDir]))->getFilesystem(),
+            'target' => $this->destinationFilesystem,
+            'tmp' => new LocalFilesystemAdapter($this->tmpLocalDir),
         ]);
 
         $tmpBasePath = $this->beforeConversion($mountManager, $basePath);
@@ -116,7 +113,7 @@ class AssetConverter extends Converter
                 continue;
             }
 
-            if (!$mountManager->has('tmp://' . $element['path'])) {
+            if (!$mountManager->directoryExists('tmp://' . $element['path'])) {
                 $mountManager->copy('target://' . $element['path'], 'tmp://' . $element['path']);
             }
         }
@@ -144,7 +141,7 @@ class AssetConverter extends Converter
                 $this->cache->get($this->cacheKey . $to) === false
                 && (
                     !$this->destinationFilesystem->has($to)
-                    || ($this->destinationFilesystem->getTimestamp($to) < $this->destinationFilesystem->getTimestamp($from))
+                    || ($this->destinationFilesystem->lastModified($to) < $this->destinationFilesystem->lastModified($from))
                 )
             );
     }

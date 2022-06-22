@@ -3,6 +3,8 @@ declare(strict_types=1);
 
 namespace JCIT\components;
 
+use League\Flysystem\DirectoryAttributes;
+use League\Flysystem\FileAttributes;
 use League\Flysystem\Filesystem;
 use League\Flysystem\Local\LocalFilesystemAdapter;
 use League\Flysystem\MountManager;
@@ -74,7 +76,7 @@ class AssetConverter extends Converter
 
         $mountManager = new MountManager([
             'target' => $this->destinationFilesystem,
-            'tmp' => new LocalFilesystemAdapter($this->tmpLocalDir),
+            'tmp' => new Filesystem(new LocalFilesystemAdapter(\Yii::getAlias($this->tmpLocalDir))),
         ]);
 
         $tmpBasePath = $this->beforeConversion($mountManager, $basePath);
@@ -106,15 +108,19 @@ class AssetConverter extends Converter
         return $resultFile;
     }
 
-    protected function copyDir(string $dir, MountManager $mountManager) {
+    protected function copyDir(string $dir, MountManager $mountManager): void
+    {
+        /** @var DirectoryAttributes|FileAttributes $element */
         foreach ($mountManager->listContents('target://' . $dir) as $element) {
-            if ($element['type'] == 'dir') {
-                $this->copyDir($element['path'], $mountManager);
+            $path = preg_replace('/target:\/\//', '', $element->path());
+
+            if ($element->isDir()) {
+                $this->copyDir($path, $mountManager);
                 continue;
             }
 
-            if (!$mountManager->directoryExists('tmp://' . $element['path'])) {
-                $mountManager->copy('target://' . $element['path'], 'tmp://' . $element['path']);
+            if (!$mountManager->has('tmp://' . $path)) {
+                $mountManager->copy('target://' . $path, 'tmp://' . $path);
             }
         }
     }
